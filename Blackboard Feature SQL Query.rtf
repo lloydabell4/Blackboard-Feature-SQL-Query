@@ -1,0 +1,401 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf760
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww10800\viewh8400\viewkind0
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f0\fs22 \cf0 select cm.course_id, cm.course_name, acr.external_person_key, acr.user_dept_code as Dept_Code, ad.name as Department, ad.liaison_id, acr.term_code,   \
+ \
+NVL(Faculty.Faculty, 'None') Faculty, \
+NVL(Students.Students, 0) Students, \
+NVL(Ann.announcements, 0) Announcements, \
+NVL(Module_Page.Module_Page, 0) Module_Page, \
+NVL(CourseReply.Course_Discussion_Replies, 0) Course_Discussion_Replies, \
+NVL(GroupReply.Group_Discussion_Replies, 0) Group_Discussion_Replies, \
+NVL(Learning_Modules.Learning_Modules, 0) Learning_Modules, \
+NVL(Lesson_Plans.Lesson_Plans, 0) Lesson_Plans, \
+NVL(CourseWiki.CourseWiki, 0) CourseWiki, \
+NVL(GroupWiki.GroupWiki, 0) GroupWiki, \
+NVL(CourseBlogs.CourseBlogs, 0) CourseBlogs, \
+NVL(GroupBlogs.GroupBlogs, 0) GroupBlogs, \
+NVL(CourseJournals.CourseJournals, 0) CourseJournals, \
+NVL(GroupJournals.GroupJournals, 0) GroupJournals, \
+NVL(Items.Items, 0) Items, \
+NVL(Files.Files, 0) Files, \
+NVL(Folders.Folders, 0) Folders, \
+NVL(WebLinks.WebLinks, 0) WebLinks, \
+NVL(Assignments.Assignments, 0) Assignments, \
+NVL(Assessments.Assessments, 0) Assessments, \
+NVL(FCAssessments.FCAssessments, 0) FCAssessments, \
+NVL(Flickr.Flickr, 0) FlickrMashups, \
+NVL(YouTube.YouTube, 0) YouTubeMashups, \
+NVL(Slideshare.Slideshare, 0) Slideshare_Mashups, \
+NVL(McGrawHill.McGrawHill, 0) McGrawHill, \
+NVL(GG.Posted_Grades, 0) Posted_Grades, \
+NVL(Atomic.Atomic, 0) AtomicLearning, \
+NVL(Panopto.Panopto, 0) Panopto, \
+NVL(Photos.Photos, 0) Photos \
+ \
+from bblearn.course_main cm \
+ \
+left join (select crsmain_pk1, listagg(to_char(u.user_id), ',') within group (order by u.pk1) as faculty \
+          from users u, course_users cu \
+          where u.pk1 = cu.users_pk1 \
+          and cu.role = 'P' \
+          and cu.row_status = 0 \
+          group by crsmain_pk1) faculty on faculty.crsmain_pk1 = cm.pk1 \
+           \
+           \
+left join (select crsmain_pk1, count(pk1) students \
+           from course_users \
+           where role = 'S' \
+/*           and row_status = '0'   */ \
+ \
+           group by crsmain_pk1) students on students.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(pk1) announcements \
+           from announcements \
+           where crsmain_pk1 is not null \
+/*           and dtcreated > '13-JAN-15'  */ \
+           group by crsmain_pk1) ann on ann.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(pk1) as module_page \
+           from course_contents \
+           where cnthndlr_handle = 'resource/x-bb-module-page' \
+           group by crsmain_pk1) module_page on module_page.crsmain_pk1 = cm.pk1 \
+ \
+ \
+left join (select cm.crsmain_pk1, count(*) course_discussion_replies \
+           from forum_main fm \
+           left join msg_main mm on fm.pk1 = mm.forummain_pk1 \
+           left join conference_main cm on cm.pk1 = fm.confmain_pk1 \
+           where msgmain_pk1 is not null \
+           and cm.GROUPS_PK1 is null \
+          group by cm.crsmain_pk1) coursereply on coursereply.crsmain_pk1 = cm.pk1 \
+ \
+left join (select g.crsmain_pk1, count(*) group_discussion_replies \
+           from forum_main fm \
+           left join msg_main mm on fm.pk1 = mm.forummain_pk1 \
+           left join conference_main cm on cm.pk1 = fm.confmain_pk1 \
+           left join groups g on g.pk1 = cm.groups_pk1 \
+           where msgmain_pk1 is not null \
+          group by g.crsmain_pk1) groupreply on groupreply.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(pk1) as learning_modules \
+           from course_contents \
+           where cnthndlr_handle = 'resource/x-bb-lesson' \
+           group by crsmain_pk1) learning_modules on learning_modules.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(pk1) as lesson_plans \
+           from course_contents \
+           where cnthndlr_handle = 'resource/x-bb-lesson-plan' \
+           group by crsmain_pk1) lesson_plans on lesson_plans.crsmain_pk1 = cm.pk1 \
+left join (select course_main_pk1, count(pk1) as coursewiki \
+           from wiki \
+           where group_pk1 is null \
+/*           and dtmodified > '01-JAN-15'  */ \
+           group by course_main_pk1) coursewiki on coursewiki.course_main_pk1 = cm.pk1 \
+left join (select course_main_pk1, count(pk1) as groupwiki \
+           from wiki \
+           where group_pk1 is not null \
+/*           and dtmodified > '01-JAN-15'  */ \
+           group by course_main_pk1) groupwiki on groupwiki.course_main_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(distinct b.pk1) as courseblogs \
+           from blogs b, blog_entry be \
+           where b.pk1 = be.blog_pk1 \
+           and b.journal_ind = 'N' \
+           and groups_pk1 is null \
+           group by crsmain_pk1) courseblogs on courseblogs.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(distinct b.pk1) as groupblogs \
+           from blogs b, blog_entry be \
+           where b.pk1 = be.blog_pk1 \
+           and b.journal_ind = 'N' \
+           and groups_pk1 is not null \
+           group by crsmain_pk1) groupblogs on groupblogs.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(distinct b.pk1) as coursejournals \
+           from blogs b, blog_entry be \
+           where b.pk1 = be.blog_pk1 \
+           and b.journal_ind = 'Y' \
+           and groups_pk1 is null \
+           group by crsmain_pk1) coursejournals on coursejournals.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(distinct b.pk1) as groupjournals \
+           from blogs b, blog_entry be \
+           where b.pk1 = be.blog_pk1 \
+           and b.journal_ind = 'Y' \
+           and groups_pk1 is not null \
+           group by crsmain_pk1) groupjournals on groupjournals.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(pk1) as items \
+           from course_contents \
+           where cnthndlr_handle = 'resource/x-bb-document' \
+           group by crsmain_pk1) items on items.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(pk1) as files \
+           from course_contents \
+           where cnthndlr_handle = 'resource/x-bb-file' \
+           group by crsmain_pk1) files on files.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(pk1) as folders \
+           from course_contents \
+           where cnthndlr_handle = 'resource/x-bb-folder' \
+           group by crsmain_pk1) folders on folders.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(pk1) as weblinks \
+           from course_contents \
+           where cnthndlr_handle = 'resource/x-bb-externallink' \
+           group by crsmain_pk1) weblinks on weblinks.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(distinct gg.gradebook_main_pk1) as assignments \
+           from gradebook_main gm, gradebook_grade gg \
+           where gm.pk1 = gg.gradebook_main_pk1 \
+           and gm.score_provider_handle = 'resource/x-bb-assignment' \
+           and gm.deleted_ind = 'N' \
+           group by crsmain_pk1) assignments on assignments.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(distinct gg.gradebook_main_pk1) as assessments \
+           from gradebook_main gm, gradebook_grade gg \
+           where gm.pk1 = gg.gradebook_main_pk1 \
+           and gm.score_provider_handle = 'resource/x-bb-assessment' \
+           and gm.deleted_ind = 'N' \
+           group by crsmain_pk1) assessments on assessments.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(pk1) as fcassessments \
+           from course_assessment \
+           where crsmain_pk1 is not null \
+           and force_completion_ind = 'Y' \
+           group by crsmain_pk1) fcassessments on fcassessments.crsmain_pk1 = cm.pk1 \
+ \
+left join (select crsmain_pk1, count(pk1) as flickr \
+           from course_contents \
+           where cnthndlr_handle = 'resource/x-bb-flickr-mashup' \
+           group by crsmain_pk1) flickr on flickr.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(pk1) as youtube \
+           from course_contents \
+           where cnthndlr_handle = 'resource/x-bb-youtube-mashup' \
+           group by crsmain_pk1) youtube on youtube.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(pk1) as slideshare \
+           from course_contents \
+           where cnthndlr_handle = 'resource/x-bb-slideshare-mashup' \
+           group by crsmain_pk1) slideshare on slideshare.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(pk1) as mcgrawhill \
+           from course_contents \
+           where cnthndlr_handle like 'resource/mcgraw-hill-assignment%' \
+           group by crsmain_pk1) mcgrawhill on mcgrawhill.crsmain_pk1 = cm.pk1 \
+left join (select gm.crsmain_pk1, count(gg.pk1) posted_grades \
+           from gradebook_main gm, gradebook_grade gg \
+           where gm.pk1 = gg.gradebook_main_pk1 \
+           and gm.deleted_ind = 'N' \
+           group by gm.crsmain_pk1) gg on gg.crsmain_pk1 = cm.pk1         \
+           \
+left join (select crsmain_pk1, count(pk1) as atomic \
+           from course_contents \
+           where cnthndlr_handle like 'resource/x-%atomiclearning%' \
+           group by crsmain_pk1) atomic on atomic.crsmain_pk1 = cm.pk1  \
+ \
+left join (select crsmain_pk1, count(pk1) as panopto \
+           from course_contents \
+           where cnthndlr_handle='hyperlink/coursecast' \
+           group by crsmain_pk1) panopto on panopto.crsmain_pk1 = cm.pk1  \
+ \
+ \
+left join (select course_pk1, count(pk1) as photos \
+           from bblearn_stats.activity_accumulator \
+           where data = '/webapps/UR-StudentPhotographs-BBLEARN/view.jsp' \
+           group by course_pk1) photos on photos.course_pk1 = cm.pk1  \
+ \
+join bbload.ats_course_requests acr  \
+on cm.course_id=acr.external_course_key \
+ \
+left join bbload.ats_departments ad \
+on ad.code=acr.user_dept_code \
+ \
+where cm.course_id like '201%' \
+ \
+UNION ALL \
+ \
+select cm.course_id, cm.course_name, aca.external_person_key, aca.user_dept_code as Dept_Code, ad.name as Department, ad.liaison_id, aca.term_code,  \
+ \
+NVL(Faculty.Faculty, 'None') Faculty, \
+NVL(Students.Students, 0) Students, \
+NVL(Ann.announcements, 0) Announcements, \
+NVL(Module_Page.Module_Page, 0) Module_Page, \
+NVL(CourseReply.Course_Discussion_Replies, 0) Course_Discussion_Replies, \
+NVL(GroupReply.Group_Discussion_Replies, 0) Group_Discussion_Replies, \
+NVL(Learning_Modules.Learning_Modules, 0) Learning_Modules, \
+NVL(Lesson_Plans.Lesson_Plans, 0) Lesson_Plans, \
+NVL(CourseWiki.CourseWiki, 0) CourseWiki, \
+NVL(GroupWiki.GroupWiki, 0) GroupWiki, \
+NVL(CourseBlogs.CourseBlogs, 0) CourseBlogs, \
+NVL(GroupBlogs.GroupBlogs, 0) GroupBlogs, \
+NVL(CourseJournals.CourseJournals, 0) CourseJournals, \
+NVL(GroupJournals.GroupJournals, 0) GroupJournals, \
+NVL(Items.Items, 0) Items, \
+NVL(Files.Files, 0) Files, \
+NVL(Folders.Folders, 0) Folders, \
+NVL(WebLinks.WebLinks, 0) WebLinks, \
+NVL(Assignments.Assignments, 0) Assignments, \
+NVL(Assessments.Assessments, 0) Assessments, \
+NVL(FCAssessments.FCAssessments, 0) FCAssessments, \
+ \
+NVL(Flickr.Flickr, 0) FlickrMashups, \
+NVL(YouTube.YouTube, 0) YouTubeMashups, \
+NVL(Slideshare.Slideshare, 0) Slideshare_Mashups, \
+NVL(McGrawHill.McGrawHill, 0) McGrawHill, \
+NVL(GG.Posted_Grades, 0) Posted_Grades, \
+NVL(Atomic.Atomic, 0) AtomicLearning, \
+NVL(Panopto.Panopto, 0) Panopto, \
+NVL(Photos.Photos, 0) Photos \
+ \
+from bblearn.course_main cm \
+ \
+left join (select crsmain_pk1, listagg(to_char(u.user_id), ',') within group (order by u.pk1) as faculty \
+          from users u, course_users cu \
+          where u.pk1 = cu.users_pk1 \
+          and cu.role = 'P' \
+          and cu.row_status = 0 \
+          group by crsmain_pk1) faculty on faculty.crsmain_pk1 = cm.pk1 \
+           \
+           \
+left join (select crsmain_pk1, count(pk1) students \
+           from course_users \
+           where role = 'S' \
+/*           and row_status = '0'   */ \
+ \
+           group by crsmain_pk1) students on students.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(pk1) announcements \
+           from announcements \
+           where crsmain_pk1 is not null \
+ /*          and dtcreated > '13-JAN-15'            */ \
+           group by crsmain_pk1) ann on ann.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(pk1) as module_page \
+           from course_contents \
+           where cnthndlr_handle = 'resource/x-bb-module-page' \
+           group by crsmain_pk1) module_page on module_page.crsmain_pk1 = cm.pk1 \
+ \
+ \
+left join (select cm.crsmain_pk1, count(*) course_discussion_replies \
+           from forum_main fm \
+           left join msg_main mm on fm.pk1 = mm.forummain_pk1 \
+           left join conference_main cm on cm.pk1 = fm.confmain_pk1 \
+           where msgmain_pk1 is not null \
+           and cm.GROUPS_PK1 is null \
+          group by cm.crsmain_pk1) coursereply on coursereply.crsmain_pk1 = cm.pk1 \
+ \
+left join (select g.crsmain_pk1, count(*) group_discussion_replies \
+           from forum_main fm \
+           left join msg_main mm on fm.pk1 = mm.forummain_pk1 \
+           left join conference_main cm on cm.pk1 = fm.confmain_pk1 \
+           left join groups g on g.pk1 = cm.groups_pk1 \
+           where msgmain_pk1 is not null \
+          group by g.crsmain_pk1) groupreply on groupreply.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(pk1) as learning_modules \
+           from course_contents \
+           where cnthndlr_handle = 'resource/x-bb-lesson' \
+           group by crsmain_pk1) learning_modules on learning_modules.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(pk1) as lesson_plans \
+           from course_contents \
+           where cnthndlr_handle = 'resource/x-bb-lesson-plan' \
+           group by crsmain_pk1) lesson_plans on lesson_plans.crsmain_pk1 = cm.pk1 \
+left join (select course_main_pk1, count(pk1) as coursewiki \
+           from wiki \
+           where group_pk1 is null \
+ /*          and dtmodified > '01-JAN-15'      */ \
+           group by course_main_pk1) coursewiki on coursewiki.course_main_pk1 = cm.pk1 \
+left join (select course_main_pk1, count(pk1) as groupwiki \
+           from wiki \
+           where group_pk1 is not null \
+/*           and dtmodified > '01-JAN-15'       */ \
+           group by course_main_pk1) groupwiki on groupwiki.course_main_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(distinct b.pk1) as courseblogs \
+           from blogs b, blog_entry be \
+           where b.pk1 = be.blog_pk1 \
+           and b.journal_ind = 'N' \
+           and groups_pk1 is null \
+           group by crsmain_pk1) courseblogs on courseblogs.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(distinct b.pk1) as groupblogs \
+           from blogs b, blog_entry be \
+           where b.pk1 = be.blog_pk1 \
+           and b.journal_ind = 'N' \
+           and groups_pk1 is not null \
+           group by crsmain_pk1) groupblogs on groupblogs.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(distinct b.pk1) as coursejournals \
+           from blogs b, blog_entry be \
+           where b.pk1 = be.blog_pk1 \
+           and b.journal_ind = 'Y' \
+           and groups_pk1 is null \
+           group by crsmain_pk1) coursejournals on coursejournals.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(distinct b.pk1) as groupjournals \
+           from blogs b, blog_entry be \
+           where b.pk1 = be.blog_pk1 \
+           and b.journal_ind = 'Y' \
+           and groups_pk1 is not null \
+           group by crsmain_pk1) groupjournals on groupjournals.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(pk1) as items \
+           from course_contents \
+           where cnthndlr_handle = 'resource/x-bb-document' \
+           group by crsmain_pk1) items on items.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(pk1) as files \
+           from course_contents \
+           where cnthndlr_handle = 'resource/x-bb-file' \
+           group by crsmain_pk1) files on files.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(pk1) as folders \
+           from course_contents \
+           where cnthndlr_handle = 'resource/x-bb-folder' \
+           group by crsmain_pk1) folders on folders.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(pk1) as weblinks \
+           from course_contents \
+           where cnthndlr_handle = 'resource/x-bb-externallink' \
+           group by crsmain_pk1) weblinks on weblinks.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(distinct gg.gradebook_main_pk1) as assignments \
+           from gradebook_main gm, gradebook_grade gg \
+           where gm.pk1 = gg.gradebook_main_pk1 \
+           and gm.score_provider_handle = 'resource/x-bb-assignment' \
+           and gm.deleted_ind = 'N' \
+           group by crsmain_pk1) assignments on assignments.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(distinct gg.gradebook_main_pk1) as assessments \
+           from gradebook_main gm, gradebook_grade gg \
+           where gm.pk1 = gg.gradebook_main_pk1 \
+           and gm.score_provider_handle = 'resource/x-bb-assessment' \
+           and gm.deleted_ind = 'N' \
+           group by crsmain_pk1) assessments on assessments.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(pk1) as fcassessments \
+           from course_assessment \
+           where crsmain_pk1 is not null \
+           and force_completion_ind = 'Y' \
+           group by crsmain_pk1) fcassessments on fcassessments.crsmain_pk1 = cm.pk1 \
+ \
+left join (select crsmain_pk1, count(pk1) as flickr \
+           from course_contents \
+           where cnthndlr_handle = 'resource/x-bb-flickr-mashup' \
+           group by crsmain_pk1) flickr on flickr.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(pk1) as youtube \
+           from course_contents \
+           where cnthndlr_handle = 'resource/x-bb-youtube-mashup' \
+           group by crsmain_pk1) youtube on youtube.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(pk1) as slideshare \
+           from course_contents \
+           where cnthndlr_handle = 'resource/x-bb-slideshare-mashup' \
+           group by crsmain_pk1) slideshare on slideshare.crsmain_pk1 = cm.pk1 \
+left join (select crsmain_pk1, count(pk1) as mcgrawhill \
+           from course_contents \
+           where cnthndlr_handle like 'resource/mcgraw-hill-assignment%' \
+           group by crsmain_pk1) mcgrawhill on mcgrawhill.crsmain_pk1 = cm.pk1 \
+left join (select gm.crsmain_pk1, count(gg.pk1) posted_grades \
+           from gradebook_main gm, gradebook_grade gg \
+           where gm.pk1 = gg.gradebook_main_pk1 \
+           and gm.deleted_ind = 'N' \
+           group by gm.crsmain_pk1) gg on gg.crsmain_pk1 = cm.pk1         \
+           \
+left join (select crsmain_pk1, count(pk1) as atomic \
+           from course_contents \
+           where cnthndlr_handle like 'resource/x-%atomiclearning%' \
+           group by crsmain_pk1) atomic on atomic.crsmain_pk1 = cm.pk1  \
+ \
+left join (select crsmain_pk1, count(pk1) as panopto \
+           from course_contents \
+           where cnthndlr_handle='hyperlink/coursecast' \
+           group by crsmain_pk1) panopto on panopto.crsmain_pk1 = cm.pk1  \
+ \
+ \
+left join (select course_pk1, count(pk1) as photos \
+           from bblearn_stats.activity_accumulator \
+           where data = '/webapps/UR-StudentPhotographs-BBLEARN/view.jsp' \
+           group by course_pk1) photos on photos.course_pk1 = cm.pk1  \
+ \
+join bbload.ats_course_archive aca  \
+on cm.course_id=aca.external_course_key \
+ \
+left join bbload.ats_departments ad \
+on ad.code=aca.user_dept_code \
+ \
+where cm.course_id like '201%'}
